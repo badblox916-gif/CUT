@@ -1,56 +1,46 @@
-# Welcome to your Expo app 👋
+# CUT — prototipo móvil funcional
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Adaptación del feed y los reels del mockup de Stitch a Expo SDK 57, React Native y Expo Router. Conserva el estilo oscuro, los acentos verdes, los bordes de sticker y las fuentes Anton y Space Grotesk. El diseño prioriza teléfonos y centra el contenido en pantallas grandes. Los textos principales usan 16–17 px, las etiquetas 12–15 px y los títulos 23–44 px.
 
-## Get started
+## Ejecutar
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Abre la app con Expo Go compatible con SDK 57 o con un development build. Para la vista previa web:
 
-### Other setup steps
+```sh
+npm run web
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Recorridos funcionales
 
-## Learn more
+- Inicio: búsqueda por contenido, creador y hashtag; Para ti / Siguiendo; filtros; tendencias desplegables; historias de ejemplo y perfiles de creadores.
+- Crear cortes: texto, fotos de la galería, emojis, hashtags y encuestas con dos opciones.
+- Interacciones: me gusta, comentarios, reposts, guardados y compartir mediante el sistema.
+- Reels: video real, reproducción / pausa, sonido, progreso, seguimiento, comentarios y guardados. Puedes publicar videos de la galería.
+- Perfil: publicaciones propias, guardados, reposts y edición de nombre, usuario, foto y biografía.
+- Ajustes: gestionar creadores seguidos. Notificaciones: actividad de demostración con navegación a su contenido.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Datos y alcance
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Es un prototipo local: no hay autenticación, servidor, mensajes a otros usuarios ni notificaciones push. Los creadores y su actividad son ficticios. Publicaciones, comentarios, votos, perfil e interacciones persisten mediante AsyncStorage. Los medios propios se copian a documentos de la app en iOS / Android y se guardan en IndexedDB en web; eliminar los datos de la app o del navegador elimina ese contenido local.
 
-## Join the community
+Las fotos y el video iniciales están incluidos en assets/media. Sus fuentes están documentadas en assets/media/SOURCES.md. Las tipografías están en assets/fonts. Los archivos originales del ZIP están en references y se usan solamente como referencia visual.
 
-Join our community of developers creating universal apps.
+## Validación
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```sh
+npm run lint
+npm run typecheck
+npx playwright install chromium
+npm run test:e2e
+npx expo export --platform web
+npx expo export --platform ios --platform android
+```
+
+Las pruebas recorren búsqueda, navegación, publicación, comentarios, encuesta, edición de perfil, subida de fotos, persistencia y reproducción. Para usar un Chromium existente, define PLAYWRIGHT_CHROMIUM_EXECUTABLE con la ruta a su ejecutable. Las pruebas exportan la app web y ejecutan un servidor local en el puerto 8082. Para abrir esa misma vista previa manualmente usa npm run test:serve.
+
+Los bundles móviles se pueden comprobar sin generar ni editar directorios nativos. La compilación del bundle no sustituye una prueba en un dispositivo físico.
