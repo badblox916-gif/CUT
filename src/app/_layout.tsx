@@ -4,11 +4,51 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { SocialProvider } from "@/context/social";
+import { AuthProvider, useAuth } from "@/context/auth";
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(console.warn);
+
+function AppNavigator() {
+  const { session, isLoading } = useAuth();
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync().catch(console.warn);
+  }, [isLoading]);
+
+  if (isLoading)
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#141716",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator
+          accessibilityLabel="Comprobando sesión"
+          color="#80d9a0"
+        />
+      </View>
+    );
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: "#141716" },
+      }}
+    >
+      <Stack.Protected guard={!session} redirectTo="/">
+        <Stack.Screen name="sign-in" />
+      </Stack.Protected>
+      <Stack.Protected guard={Boolean(session)} redirectTo="/sign-in">
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -16,34 +56,15 @@ export default function RootLayout() {
     Space: require("@/assets/fonts/SpaceGrotesk.ttf"),
     ...Feather.font,
   });
-  useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync();
-  }, [loaded, error]);
   if (!loaded && !error) return null;
   return (
     <SafeAreaProvider>
-      <SocialProvider>
+      <AuthProvider>
         <StatusBar style="light" />
         <View style={{ flex: 1, backgroundColor: "#0b0e0c" }}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "#0b0e0c" },
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="compose" options={{ presentation: "modal" }} />
-            <Stack.Screen
-              name="edit-profile"
-              options={{ presentation: "modal" }}
-            />
-            <Stack.Screen
-              name="post/[id]"
-              options={{ presentation: "modal" }}
-            />
-          </Stack>
+          <AppNavigator />
         </View>
-      </SocialProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

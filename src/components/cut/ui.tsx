@@ -16,7 +16,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSocial } from "@/context/social";
-import { creators, type Creator } from "@/data/demo";
+import { useNotifications } from "@/context/notifications";
+import type { Creator } from "@/data/social";
 import { useMedia } from "@/hooks/use-media";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -60,7 +61,11 @@ export function Icon({
   size?: number;
   color?: ColorValue;
 }) {
-  return <Feather name={name} size={size} color={color} />;
+  const iconColor =
+    typeof color === "number"
+      ? `#${(color >>> 0).toString(16).padStart(8, "0")}`
+      : (color ?? C.mint);
+  return <Feather name={name} size={size} color={iconColor} />;
 }
 export function IconButton({
   name,
@@ -149,7 +154,7 @@ export function Avatar({
   uri?: string;
 }) {
   const { profile } = useSocial();
-  const photo = useMedia(uri ?? (me ? profile.avatarUri : undefined));
+  const photo = useMedia(uri ?? (me ? profile.avatarUri : creator?.avatarUri));
   return (
     <View
       style={[
@@ -178,7 +183,7 @@ export function Avatar({
   );
 }
 export function Header() {
-  const { notificationsRead } = useSocial();
+  const { unreadCount } = useNotifications();
   const { width } = useWindowDimensions();
   return (
     <View style={s.header}>
@@ -215,7 +220,13 @@ export function Header() {
             label="Notificaciones"
             onPress={() => router.push("/notifications")}
           />
-          {!notificationsRead && <View style={s.dot} />}
+          {unreadCount > 0 && (
+            <View
+              accessible
+              accessibilityLabel="Hay notificaciones sin leer"
+              style={s.dot}
+            />
+          )}
         </View>
         <Pressable
           accessibilityLabel="Mi perfil"
@@ -232,7 +243,7 @@ export function Page({
   header = true,
   style,
 }: ViewProps & { header?: boolean }) {
-  const { ready } = useSocial();
+  const { ready, syncError, retry } = useSocial();
   return (
     <SafeAreaView
       edges={
@@ -241,6 +252,19 @@ export function Page({
       style={[s.page, style]}
     >
       {header && <Header />}
+      {!!syncError && (
+        <View style={{ padding: 14, gap: 10, backgroundColor: C.panel }}>
+          <Txt
+            accessibilityRole="alert"
+            style={{ color: "#ffbd9d", fontSize: 14 }}
+          >
+            {syncError}
+          </Txt>
+          <Button secondary onPress={retry}>
+            REINTENTAR CONEXIÓN
+          </Button>
+        </View>
+      )}
       {ready ? (
         children
       ) : (
@@ -310,9 +334,6 @@ export function Empty({ title, text }: { title: string; text: string }) {
       </Txt>
     </View>
   );
-}
-export function creatorFor(id: string) {
-  return creators.find((c) => c.id === id);
 }
 export const s = StyleSheet.create({
   page: {

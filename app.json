@@ -11,6 +11,10 @@
       "icon": "./assets/brand/icon.png"
     },
     "android": {
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#141716",
         "foregroundImage": "./assets/brand/adaptive.png",
@@ -37,8 +41,8 @@
         "expo-image-picker",
         {
           "photosPermission": "CUT accede a las fotos y videos que eliges para crear tus cortes.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "cameraPermission": "CUT usa la cámara cuando eliges tomar una foto o grabar un video para tus publicaciones, historias y reels.",
+          "microphonePermission": "CUT usa el micrófono para incluir sonido en los videos que grabas."
         }
       ]
     ],

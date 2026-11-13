@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
 
 # typescript
 *.tsbuildinfo
@@ -45,3 +46,5 @@ example
 # UI test artifacts
 test-results/
 playwright-report/
+.cache/
+*-debug.log

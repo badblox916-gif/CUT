@@ -20,8 +20,20 @@ export default defineConfig({
   webServer: {
     command: "npm run test:serve",
     url: "http://localhost:8082",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120000,
-    env: { EXPO_OFFLINE: "1" },
+    env: {
+      EXPO_OFFLINE: "1",
+      EXPO_PUBLIC_FIREBASE_API_KEY: "test-api-key",
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: "demo-cut.firebaseapp.com",
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: "demo-cut",
+      EXPO_PUBLIC_FIREBASE_APP_ID: "test-app-id",
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: "demo-cut.appspot.com",
+      EXPO_PUBLIC_FIREBASE_EMULATOR_HOST: "127.0.0.1",
+      EXPO_PUBLIC_MEDIA_PROVIDER:
+        process.env.CUT_TEST_CLOUDINARY === "1" ? "cloudinary" : "firebase",
+      EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: "cut-test-cloud",
+      EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET: "cut-test-preset",
+    },
   },
 });

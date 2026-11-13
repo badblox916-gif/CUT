@@ -1,31 +1,35 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { memo, useState } from "react";
-import { Modal, Pressable, Share, StyleSheet, View } from "react-native";
+import { memo } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSocial } from "@/context/social";
-import type { Post } from "@/data/demo";
+import type { Post } from "@/data/social";
 import { useMedia } from "@/hooks/use-media";
-import {
-  Avatar,
-  Button,
-  C,
-  creatorFor,
-  Icon,
-  IconButton,
-  Txt,
-  type IconName,
-} from "./ui";
+import { useCreator } from "@/hooks/use-creator";
+import { Avatar, C, Icon, Txt, type IconName } from "./ui";
+import { ContentOptions } from "./content-options";
+import { EmbeddedPost } from "./embedded-post";
+import { MediaVideo } from "./media-video";
 
 export function compact(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
 }
-export const PostCard = memo(function PostCard({ post }: { post: Post }) {
+export const PostCard = memo(function PostCard({
+  post,
+  videoActive = true,
+}: {
+  post: Post;
+  videoActive?: boolean;
+}) {
   const social = useSocial();
   const imageUri = useMedia(post.imageUri);
-  const creator = creatorFor(post.creatorId);
-  const [options, setOptions] = useState(false);
-  const me = post.creatorId === "me";
+  const { creator } = useCreator(post.creatorId);
+  const me = post.creatorId === social.accountId;
   const voted = social.votes[post.id];
+  const repostTarget = post.originalPostId ?? post.id;
+  const original = post.originalPostId
+    ? social.posts.find((item) => item.id === post.originalPostId)
+    : undefined;
   const openComments = () =>
     router.push({ pathname: "/post/[id]", params: { id: post.id } });
   const actions: {
@@ -38,7 +42,7 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
     {
       icon: "heart",
       label: "Me gusta",
-      value: compact(post.likes + Number(social.liked.includes(post.id))),
+      value: compact(post.likes),
       active: social.liked.includes(post.id),
       onPress: () => social.toggleLike(post.id),
     },
@@ -52,9 +56,9 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
     {
       icon: "repeat",
       label: "Repostear",
-      value: compact(post.reposts + Number(social.reposted.includes(post.id))),
-      active: social.reposted.includes(post.id),
-      onPress: () => social.toggleRepost(post.id),
+      value: compact(original?.reposts ?? post.reposts),
+      active: social.reposted.includes(repostTarget),
+      onPress: () => social.toggleRepost(repostTarget),
     },
     {
       icon: "bookmark",
@@ -64,11 +68,11 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
     },
   ];
   return (
-    <View style={styles.card}>
+    <View testID={`post-${post.id}`} style={styles.card}>
       <View style={styles.top}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Ver perfil de ${creator?.name ?? social.profile.name}`}
+          accessibilityLabel={`Ver perfil de ${creator?.name || social.profile.name || "Tu perfil"}`}
           onPress={() =>
             me
               ? router.navigate("/profile")
@@ -88,26 +92,53 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
                 numberOfLines={1}
                 style={{ fontSize: 17, fontWeight: "700", flexShrink: 1 }}
               >
-                {me ? social.profile.name : creator?.name}
+                {me
+                  ? social.profile.name || "Tú"
+                  : creator?.name || "Perfil de la comunidad"}
               </Txt>
-              {!me && <Icon name="check-circle" size={12} color={C.green} />}
             </View>
             <Txt
               numberOfLines={1}
               style={{ color: C.muted, fontSize: 13, marginTop: 4 }}
             >
-              @{me ? social.profile.handle : creator?.handle} · {post.time}
+              {(me ? social.profile.handle : creator?.handle)
+                ? `@${me ? social.profile.handle : creator?.handle} · `
+                : ""}
+              {post.time}
             </Txt>
           </View>
         </Pressable>
-        <IconButton
-          name="more-horizontal"
-          label="Opciones de publicación"
-          onPress={() => setOptions(true)}
+        <ContentOptions
+          kind={
+            post.originalPostId ? "repost" : post.reel ? "reel" : "publicación"
+          }
+          onDelete={me ? () => social.deletePost(post.id) : undefined}
+          saved={{
+            active: social.saved.includes(post.id),
+            toggle: () => social.toggleSave(post.id),
+          }}
+          shareMessage={`${original?.text ?? post.text}\n${original?.tag ?? post.tag} — Descubierto en CUT`}
           style={{ backgroundColor: "transparent", borderWidth: 0, width: 32 }}
         />
       </View>
-      <Txt style={styles.caption}>{post.text}</Txt>
+      {post.originalPostId && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+          <Icon name="repeat" size={14} color={C.green} />
+          <Txt style={{ color: C.green, fontSize: 13 }}>REPOSTEÓ UN CORTE</Txt>
+        </View>
+      )}
+      {!!post.text && <Txt style={styles.caption}>{post.text}</Txt>}
+      {post.originalPostId && <EmbeddedPost id={post.originalPostId} />}
+      {!!post.videoUri && !post.reel && (
+        <View style={styles.media}>
+          <MediaVideo
+            key={post.videoUri}
+            uri={post.videoUri}
+            active={videoActive}
+            height={315}
+          />
+        </View>
+      )}
       <Pressable
         accessibilityRole="button"
         onPress={() =>
@@ -188,9 +219,7 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
             </Txt>
           </View>
           {post.poll.options.map((option, index) => {
-            const votes = post.poll!.votes.map(
-              (n, i) => n + Number(voted === i),
-            );
+            const votes = post.poll!.votes;
             const percent = Math.round(
               (votes[index] / (votes.reduce((a, b) => a + b, 0) || 1)) * 100,
             );
@@ -233,9 +262,8 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
             );
           })}
           <Txt style={{ fontSize: 13, color: C.muted, marginTop: 10 }}>
-            {post.poll.votes.reduce((a, b) => a + b, 0) +
-              Number(voted !== undefined)}{" "}
-            votos · Encuesta de la comunidad
+            {post.poll.votes.reduce((a, b) => a + b, 0)} votos · Encuesta de la
+            comunidad
           </Txt>
         </View>
       )}
@@ -274,48 +302,6 @@ export const PostCard = memo(function PostCard({ post }: { post: Post }) {
           </Pressable>
         ))}
       </View>
-      <Modal
-        transparent
-        visible={options}
-        animationType="fade"
-        onRequestClose={() => setOptions(false)}
-      >
-        <Pressable style={styles.scrim} onPress={() => setOptions(false)}>
-          <Pressable
-            style={styles.options}
-            onPress={(event) => event.stopPropagation()}
-          >
-            <Txt display style={{ fontSize: 24, marginBottom: 18 }}>
-              ESTE CORTE
-            </Txt>
-            <Button
-              secondary
-              icon="bookmark"
-              onPress={() => {
-                social.toggleSave(post.id);
-                setOptions(false);
-              }}
-            >
-              {social.saved.includes(post.id)
-                ? "QUITAR DE GUARDADOS"
-                : "GUARDAR CORTE"}
-            </Button>
-            <Button
-              secondary
-              icon="share-2"
-              onPress={() => {
-                setOptions(false);
-                Share.share({
-                  message: `${post.text}\n${post.tag} — Descubierto en CUT`,
-                }).catch(() => {});
-              }}
-            >
-              COMPARTIR
-            </Button>
-            <Button onPress={() => setOptions(false)}>LISTO</Button>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 });
@@ -404,21 +390,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     overflow: "hidden",
-  },
-  scrim: {
-    flex: 1,
-    backgroundColor: "#000a",
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  options: {
-    padding: 25,
-    paddingBottom: 40,
-    gap: 12,
-    width: "100%",
-    maxWidth: 560,
-    backgroundColor: C.raised,
-    borderTopWidth: 2,
-    borderColor: C.green,
   },
 });
